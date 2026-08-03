@@ -23,8 +23,8 @@ const io = new Server(server, {
     maxHttpBufferSize: 1e6,
 });
 
-// 初始化数据库
-const db = initDb();
+// 初始化数据库（异步：需要 DNS 解析 IPv4）
+const db = await initDb();
 
 // 中间件
 app.use(express.json());
