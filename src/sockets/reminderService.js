@@ -1,5 +1,6 @@
 import { config } from '../config.js';
 import { calculateDaysOverdue, parseDbDate, getTodayStr } from '../utils/helpers.js';
+import { assertResult } from '../db.js';
 
 /**
  * 打卡成就等级表（0-10 次，共 11 档）
@@ -36,22 +37,20 @@ export function startReminderService(io, db) {
  */
 async function getAllOverdueUsers(db) {
     const now = Date.now();
-    const rows = await db.all(`
-        SELECT
-            u.id, u.username, u.avatar_emoji, u.created_at,
-            us.last_checkin_time
-        FROM users u
-        JOIN user_stats us ON us.user_id = u.id
-    `);
+    const { data: rows } = assertResult(
+        await db.from('users').select('id, username, avatar_emoji, created_at, user_stats(last_checkin_time)'),
+        'overdue users'
+    );
 
     const overdue = [];
     for (const row of rows) {
-        const baseline = row.last_checkin_time || row.created_at;
+        const lastCheckin = row.user_stats ? row.user_stats.last_checkin_time : null;
+        const baseline = lastCheckin || row.created_at;
         const baselineMs = parseDbDate(baseline).getTime();
         const elapsed = now - baselineMs;
 
         if (elapsed >= config.REMINDER_THRESHOLD_MS) {
-            const N = calculateDaysOverdue(row.last_checkin_time, row.created_at);
+            const N = calculateDaysOverdue(lastCheckin, row.created_at);
             if (N > 1) {
                 overdue.push({
                     target_user_id: row.id,
@@ -69,20 +68,26 @@ async function getAllOverdueUsers(db) {
  */
 async function getAllAchievementUsers(db) {
     const today = getTodayStr();
-    const rows = await db.all(`
-        SELECT
-            u.id AS target_user_id,
-            u.username AS target_username,
-            (SELECT COUNT(*) FROM checkins c WHERE c.user_id = u.id AND c.checkin_date = ?) AS today_count
-        FROM users u
-    `, [today]);
+    const { data: users } = assertResult(
+        await db.from('users').select('id, username'),
+        'achievement users'
+    );
+    const { data: todayRows } = assertResult(
+        await db.from('checkins').select('user_id').eq('checkin_date', today),
+        'achievement today'
+    );
 
-    return rows.map(row => {
-        const count = Math.min(row.today_count, 10);
+    const counts = {};
+    for (const r of todayRows) {
+        counts[r.user_id] = (counts[r.user_id] || 0) + 1;
+    }
+
+    return users.map(row => {
+        const count = Math.min(counts[row.id] || 0, 10);
         const tier = ACHIEVEMENT_TIERS[count];
         return {
-            target_user_id: row.target_user_id,
-            target_username: row.target_username,
+            target_user_id: row.id,
+            target_username: row.username,
             checkin_count: count,
             title: tier.title,
             phrase: tier.phrase,
@@ -106,7 +111,7 @@ export async function broadcastDanmakuBatch(io, db) {
     if (overdueUsers.length > 0) {
         const now = new Date().toISOString();
         for (const user of overdueUsers) {
-            await db.run('UPDATE user_stats SET last_reminder_sent = ? WHERE user_id = ?', [now, user.target_user_id]);
+            await db.from('user_stats').update({ last_reminder_sent: now }).eq('user_id', user.target_user_id);
         }
     }
 

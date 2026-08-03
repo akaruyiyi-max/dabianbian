@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
 import { createOnlineUserManager } from './onlineUsers.js';
 import { checkAndSendReminderForUser } from './reminderService.js';
+import { assertResult } from '../db.js';
 
 export function setupSocketHandlers(io, db) {
     const onlineManager = createOnlineUserManager(io);
@@ -26,7 +27,10 @@ export function setupSocketHandlers(io, db) {
         console.log(`[Socket] User connected: ${socket.username} (id=${socket.userId})`);
 
         // 获取用户头像
-        const user = await db.get('SELECT avatar_emoji FROM users WHERE id = ?', [socket.userId]);
+        const { data: user } = assertResult(
+            await db.from('users').select('avatar_emoji').eq('id', socket.userId).maybeSingle(),
+            'socket user'
+        );
         const avatarEmoji = user ? user.avatar_emoji : '\u{1F4A9}';
 
         // 添加到在线列表

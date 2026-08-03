@@ -2,14 +2,18 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
 import { getTodayStr } from '../utils/helpers.js';
+import { assertResult } from '../db.js';
 
 export function createAuthRouter(db) {
     const router = Router();
 
     // ---- 房间邀请码辅助（存储在 meta 表） ----
     async function getInviteCode() {
-        const row = await db.get("SELECT value FROM meta WHERE key = 'invite_code'");
-        return row ? row.value : null;
+        const { data } = assertResult(
+            await db.from('meta').select('value').eq('key', 'invite_code').maybeSingle(),
+            'getInviteCode'
+        );
+        return data ? data.value : null;
     }
 
     // GET /api/auth/invite-status — 房间是否已初始化（是否已设置邀请码）
@@ -33,9 +37,9 @@ export function createAuthRouter(db) {
             if (raw.length < 4 || raw.length > 40) {
                 return res.status(400).json({ error: 'INVALID_CODE', message: '邀请码需为 4-40 位字符' });
             }
-            await db.run(
-                "INSERT INTO meta (key, value) VALUES ('invite_code', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-                [raw]
+            assertResult(
+                await db.from('meta').upsert({ key: 'invite_code', value: raw }, { onConflict: 'key' }),
+                'setup invite_code'
             );
             console.log('[Auth] 房间邀请码已设置');
             res.json({ success: true });
@@ -72,13 +76,15 @@ export function createAuthRouter(db) {
             const trimmedName = trimmedRaw;
 
             // 查找用户，不存在则自动创建
-            let user = await db.get('SELECT * FROM users WHERE username = ?', [trimmedName]);
+            let user = assertResult(
+                await db.from('users').select('*').eq('username', trimmedName).maybeSingle(),
+                'login find user'
+            ).data;
             if (!user) {
-                const result = await db.run(
-                    'INSERT INTO users (username, password_hash) VALUES (?, ?) RETURNING id',
-                    [trimmedName, '']
-                );
-                user = await db.get('SELECT * FROM users WHERE id = ?', [result.lastID]);
+                user = assertResult(
+                    await db.from('users').insert({ username: trimmedName, password_hash: '' }).select('*').single(),
+                    'login create user'
+                ).data;
                 console.log(`[Auth] 新用户自动注册: ${trimmedName} (id=${user.id})`);
             }
 
@@ -107,15 +113,28 @@ export function createAuthRouter(db) {
         const token = authHeader.split(' ')[1];
         try {
             const payload = jwt.verify(token, config.JWT_SECRET);
-            const user = await db.get('SELECT id, username, avatar_emoji, created_at FROM users WHERE id = ?', [payload.userId]);
+            const user = assertResult(
+                await db.from('users').select('id, username, avatar_emoji, created_at').eq('id', payload.userId).maybeSingle(),
+                'me find user'
+            ).data;
             if (!user) {
                 return res.status(401).json({ error: 'USER_NOT_FOUND', message: '用户不存在' });
             }
-            const stats = await db.get('SELECT * FROM user_stats WHERE user_id = ?', [user.id]);
-            const todayCountRow = await db.get('SELECT COUNT(*) as c FROM checkins WHERE user_id = ? AND checkin_date = ?', [user.id, getTodayStr()]);
-            res.json({ user, stats, today_count: todayCountRow.c });
+            const stats = assertResult(
+                await db.from('user_stats').select('*').eq('user_id', user.id).maybeSingle(),
+                'me stats'
+            ).data;
+            const { count } = assertResult(
+                await db.from('checkins').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('checkin_date', getTodayStr()),
+                'me today count'
+            );
+            res.json({ user, stats, today_count: count || 0 });
         } catch (err) {
-            return res.status(401).json({ error: 'INVALID_TOKEN', message: '令牌无效或已过期' });
+            if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+                return res.status(401).json({ error: 'INVALID_TOKEN', message: '令牌无效或已过期' });
+            }
+            console.error('[Auth] me error:', err);
+            return res.status(500).json({ error: 'INTERNAL_ERROR', message: '获取用户信息失败' });
         }
     });
 

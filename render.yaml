@@ -5,8 +5,10 @@ services:
   #   2. 打开 https://dashboard.render.com/blueprints 点击 "New Blueprint Instance"
   #   3. 连接你的 GitHub 仓库，Render 会自动按本文件创建服务
   #   4. 创建时 JWT_SECRET 可保留 generateValue 自动生成
-  #   5. 服务创建后，在 Render 控制台为该服务添加环境变量 DATABASE_URL，
-  #      值为 Supabase 的 Postgres 连接串（见仓库 README / schema.sql 顶部说明）
+  #   5. 服务创建后，在 Render 控制台为该服务添加两个环境变量：
+  #        SUPABASE_URL        = https://<project-ref>.supabase.co
+  #        SUPABASE_ANON_KEY   = <project anon public key>
+  #      （均通过 sync:false 在控制台手动填写，不要写进仓库）
   - type: web
     name: daibiandengjiqi
     runtime: node
@@ -19,10 +21,12 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DATABASE_URL
-        sync: false   # 不在仓库中硬编码；需在 Render 控制台手动填入 Supabase 连接串
+      - key: SUPABASE_URL
+        sync: false   # 在 Render 控制台填入 https://<project-ref>.supabase.co
+      - key: SUPABASE_ANON_KEY
+        sync: false   # 在 Render 控制台填入 Supabase 的 anon public key
       - key: JWT_SECRET
         generateValue: true
-    # 说明：本服务使用 Supabase 免费 Postgres 作为数据库，
+    # 说明：本服务使用 Supabase 免费 Postgres（经 supabase-js REST/HTTPS 访问，绕开 IPv6 限制），
     # 数据在 Render 免费实例休眠/重启后依然保留（不再丢数据）。
-    # DATABASE_URL 为敏感信息，请用 sync: false 在 Render 控制台单独配置，不要写入仓库。
+    # SUPABASE_URL / SUPABASE_ANON_KEY 为敏感信息，请用 sync:false 在 Render 控制台单独配置。

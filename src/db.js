@@ -1,111 +1,62 @@
-import pg from 'pg';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { createClient } from '@supabase/supabase-js';
 
-const { Pool } = pg;
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// 让 pg 把 TIMESTAMPTZ / TIMESTAMP 以 ISO 字符串返回，保持与 SQLite 行为一致。
-function isoParser(str) {
-    if (str == null) return str;
-    const iso = str.replace(' ', 'T');
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? str : d.toISOString();
-}
-pg.types.setTypeParser(1184, isoParser);
-pg.types.setTypeParser(1114, isoParser);
-
-let pool = null;
+let supabase = null;
 
 /**
- * 初始化数据库（Supabase Postgres）。
+ * 初始化数据库（Supabase REST/HTTPS 客户端）。
  *
- * 重要发现：Supabase Direct Connection (db.xxx.supabase.co:5432) 只配置了 AAAA (IPv6)，
- * 没有 A 记录 (IPv4)。Render 免费网络不支持 IPv6 → ENETUNREACH。
+ * 为什么用 supabase-js 而不是 pg 直连：
+ *   Supabase Direct Connection (db.xxx.supabase.co:5432) 与 Transaction Pooler
+ *   对该项目都只暴露 IPv6（无 A 记录），而 Render 免费网络不支持 IPv6，
+ *   导致 pg 直连始终 ENETUNREACH / ENOTFOUND。
  *
- * 解决方案：使用 Supabase Transaction Pooler (aws-0-[region].pooler.supabase.com:6542)，
- * 该端点有 IPv4 地址。Pooler 对应用透明，支持相同的 SQL 操作。
+ *   supabase-js 走 HTTPS（PostgREST），目标域名 supabase.co 有 IPv4 地址，
+ *   因此在 Render 上可正常连接，彻底绕开 IPv6 问题。
  *
- * 连接串格式转换：
- *   原始: postgresql://postgres:PASS@db.PROJECT_REF.supabase.co:5432/postgres?sslmode=require
- *   转换: postgresql://postgres:PASS@aws-0-us-east-1.pooler.supabase.com:6542/postgres?sslmode=require
+ * 环境变量：
+ *   SUPABASE_URL        例如 https://inzuoypiwasnoumspzik.supabase.co
+ *   SUPABASE_ANON_KEY   项目 anon public key（仅服务端使用，不暴露给客户端）
  *
- * 可通过环境变量 SUPABASE_POOLER_HOST 覆盖默认 pooler 主机名。
+ * 说明：本应用所有数据库访问都经由服务端 API，anon key 不会下发到浏览器，
+ *       因此可在 Supabase 控制台对 4 张表执行 DISABLE ROW LEVEL SECURITY 后安全使用。
  */
-export async function initDb() {
-    const rawUrl = process.env.DATABASE_URL;
-    if (!rawUrl) {
+export function initDb() {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+    if (!url || !key) {
         throw new Error(
-            'DATABASE_URL 环境变量未设置。请配置 Supabase Postgres 连接串（见 .env.example）'
+            'SUPABASE_URL 和 SUPABASE_ANON_KEY 环境变量未设置。' +
+            '请在 Render / .env 中配置（从 Supabase Dashboard → Settings → API 获取）。'
         );
     }
-
-    const maskedUrl = rawUrl.replace(/\/\/([^:]+):([^@]+)@/, '//\$1:****@');
-    console.log('[DB] DATABASE_URL (masked):', maskedUrl);
-
-    // 解析原始连接串
-    const urlObj = new URL(rawUrl);
-    const hostname = urlObj.hostname;
-
-    // 检测是否是 Direct Connection（db.xxx.supabase.co），如果是则自动切换到 Pooler
-    let finalUrl = rawUrl;
-    if (hostname.startsWith('db.') && hostname.endsWith('.supabase.co')) {
-        const poolerHost = process.env.SUPABASE_POOLER_HOST || 'aws-0-us-east-1.pooler.supabase.com';
-        const poolerPort = 6542;
-
-        finalUrl = rawUrl
-            .replace(hostname, poolerHost)
-            .replace(`:${urlObj.port || 5432}`, `:${poolerPort}`);
-
-        console.log(`[DB] ⚡  Auto-switching to Transaction Pooler:`);
-        console.log(`[DB]    ${hostname}:${urlObj.port || 5432} → ${poolerHost}:${poolerPort}`);
-        console.log('[DB]    (Direct Connection has no IPv4; Pooler has IPv4)');
-    }
-
-    pool = new Pool({
-        connectionString: finalUrl,
-        ssl: { rejectUnauthorized: false },
-        max: 10,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
+    console.log('[DB] Supabase URL:', url);
+    supabase = createClient(url, key, {
+        auth: { persistSession: false, autoRefreshToken: false },
     });
+    console.log('[DB] ✅ Supabase client initialized (HTTPS/REST, IPv4-compatible)');
+    return supabase;
+}
 
-    pool.on('error', (err) => {
-        console.error('[DB] Unexpected error on idle Postgres client:', err.message);
-    });
-
-    console.log('[DB] Postgres pool initialized (Supabase)');
-    return dbApi;
+export function getDb() {
+    if (!supabase) throw new Error('Database not initialized. Call initDb() first.');
+    return supabase;
 }
 
 /**
- * 异步数据库 API，兼容原 better-sqlite3 的 get/all/run 语义：
- *   - get(sql, ...params)  -> 单行或 null
- *   - all(sql, ...params)  -> 行数组
- *   - run(sql, ...params)  -> { changes, lastID, rows }
+ * 统一错误处理：解构 supabase 返回的 { data, error, count }。
+ * 若 error 存在则抛出（打印日志）；否则返回 { data, count }。
+ *
+ * 用法：
+ *   const { data: user } = assertResult(await db.from('users').select('*').eq('id', 1), 'ctx');
+ *   const { count } = assertResult(await db.from('x').select('*', { count:'exact', head:true }), 'ctx');
  */
-const dbApi = {
-    async get(sql, ...params) {
-        const res = await pool.query(sql, params);
-        return res.rows[0] || null;
-    },
-    async all(sql, ...params) {
-        const res = await pool.query(sql, params);
-        return res.rows;
-    },
-    async run(sql, ...params) {
-        const res = await pool.query(sql, params);
-        return {
-            changes: res.rowCount ?? 0,
-            lastID: res.rows[0]?.id ?? null,
-            rows: res.rows,
-        };
-    },
-    async query(sql, ...params) {
-        return pool.query(sql, params);
-    },
-    async close() {
-        if (pool) await pool.end();
-    },
-};
+export function assertResult(result, ctx) {
+    const { data, error, count } = result;
+    if (error) {
+        console.error(`[DB] ${ctx}:`, error.message);
+        const e = new Error(error.message);
+        e.code = error.code;
+        throw e;
+    }
+    return { data, count };
+}
