@@ -43,6 +43,7 @@ export function initDb() {
     pool = new Pool({
         connectionString,
         ssl: { rejectUnauthorized: false }, // Supabase 要求 SSL；自签名证书故跳过校验
+        family: 4, // 强制 IPv4（Render 网络不支持 IPv6，Supabase DNS 默认返回 AAAA 导致 ENETUNREACH）
         max: 10,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,
