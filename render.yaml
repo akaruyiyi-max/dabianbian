@@ -18,11 +18,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: DB_PATH
-        value: /data/app.db
+        value: ./data/app.db
       - key: JWT_SECRET
         generateValue: true
-    # 持久磁盘：保证重启/重新部署后数据不丢失（约 $0.20/GB/月，1GB 几乎免费）
-    disk:
-      name: app-data
-      mountPath: /data
-      sizeGB: 1
+    # 注意：Render 免费版不支持挂载磁盘(disk)，数据库只能写在实例本地文件系统。
+    # 实例休眠/重启时本地文件会被重置，如需数据永久持久，二选一：
+    #   (A) 升级 Starter 付费实例(约 $7/月)即可挂载磁盘；或
+    #   (B) 接入外部免费 Postgres(Neon / Supabase)替换 SQLite 存储层。
