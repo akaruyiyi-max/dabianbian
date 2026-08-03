@@ -63,3 +63,7 @@ CREATE TRIGGER trg_user_stats_init
     AFTER INSERT ON users
     FOR EACH ROW
     EXECUTE FUNCTION init_user_stats();
+
+-- 初始化房间邀请码（首次部署时写入；若已存在则跳过）
+INSERT INTO meta (key, value) VALUES ('invite_code', 'bianbian666')
+ON CONFLICT (key) DO NOTHING;
