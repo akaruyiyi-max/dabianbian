@@ -27,6 +27,13 @@ let pool = null;
  */
 export function initDb() {
     const connectionString = process.env.DATABASE_URL;
+    // 启动时打印脱敏连接串用于排查（仅打印协议+主机，隐藏密码）
+    if (connectionString) {
+        const masked = connectionString.replace(/\/\/([^:]+):([^@]+)@/, '//\$1:****@');
+        console.log('[DB] DATABASE_URL (masked):', masked);
+    } else {
+        console.error('[DB] ⚠️  DATABASE_URL is EMPTY or UNDEFINED!');
+    }
     if (!connectionString) {
         throw new Error(
             'DATABASE_URL 环境变量未设置。请配置 Supabase Postgres 连接串（见 .env.example）'
