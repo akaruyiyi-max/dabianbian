@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { promises as dnsPromises } from 'node:dns';
+import { promises as dnsPromises, setServers as dnsSetServers, getServers as dnsGetServers } from 'node:dns';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -42,20 +42,46 @@ export async function initDb() {
     console.log('[DB] DATABASE_URL (masked):', maskedUrl);
 
     // 解析主机名，异步 DNS 查询仅取 A 记录 (IPv4)
+    // 注意：dns.promises.lookup 使用 OS 解析器，在 Render 上可能 ENOTFOUND。
+    //       改用 dns.promises.resolve4 直接查 DNS 服务器（A 记录），更可靠。
     const urlObj = new URL(rawUrl);
     const hostname = urlObj.hostname;
 
     let finalUrl = rawUrl;
     try {
-        console.log(`[DB] Resolving ${hostname} to IPv4 (async DNS)...`);
-        const { address } = await dnsPromises.lookup(hostname, { family: 4 });
-        console.log(`[DB] ✅ DNS: ${hostname} -> ${address} (IPv4)`);
+        console.log(`[DB] Resolving ${hostname} to IPv4 (DNS A record)...`);
+        // 先尝试用系统配置的 DNS 服务器
+        let addresses;
+        try {
+            addresses = await dnsPromises.resolve4(hostname);
+        } catch (e1) {
+            // 系统解析失败，改用 Google 公共 DNS (8.8.8.8)
+            console.log(`[DB] System DNS failed (${e1.message}), trying Google DNS (8.8.8.8)...`);
+            const originalServers = dnsGetServers();
+            dnsSetServers(['8.8.8.8', '8.8.4.4']);
+            try {
+                addresses = await dnsPromises.resolve4(hostname);
+                console.log(`[DB] ✅ Google DNS resolved successfully`);
+            } catch (e2) {
+                // 再试 Cloudflare DNS
+                console.log(`[DB] Google DNS failed, trying Cloudflare DNS (1.1.1.1)...`);
+                dnsSetServers(['1.1.1.1', '1.0.0.1']);
+                addresses = await dnsPromises.resolve4(hostname);
+                console.log(`[DB] ✅ Cloudflare DNS resolved successfully`);
+            }
+            dnsSetServers(originalServers); // 恢复原 DNS
+        }
 
-        // 将连接串中的主机名替换为 IPv4 地址（全局替换，防止出现在查询参数中）
-        finalUrl = rawUrl.split(hostname).join(address);
-        console.log('[DB] Using IPv4 connection string');
+        if (addresses && addresses.length > 0) {
+            const ipv4 = addresses[0];
+            console.log(`[DB] ✅ DNS: ${hostname} -> ${ipv4} (IPv4)`);
+
+            // 将连接串中的主机名替换为 IPv4 地址
+            finalUrl = rawUrl.split(hostname).join(ipv4);
+            console.log('[DB] Using IPv4 connection string');
+        }
     } catch (e) {
-        console.error('[DB] ⚠️  DNS resolution failed:', e.message);
+        console.error('[DB] ⚠️  All DNS resolution methods failed:', e.message);
         console.error('[DB] Will try original URL (may ENETUNREACH on Render)');
     }
 
