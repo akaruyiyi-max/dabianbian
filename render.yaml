@@ -4,7 +4,9 @@ services:
   #   1. 把本项目推到 GitHub
   #   2. 打开 https://dashboard.render.com/blueprints 点击 "New Blueprint Instance"
   #   3. 连接你的 GitHub 仓库，Render 会自动按本文件创建服务
-  #   4. 创建时在环境变量里填好 JWT_SECRET（或保留 generateValue 自动生成）
+  #   4. 创建时 JWT_SECRET 可保留 generateValue 自动生成
+  #   5. 服务创建后，在 Render 控制台为该服务添加环境变量 DATABASE_URL，
+  #      值为 Supabase 的 Postgres 连接串（见仓库 README / schema.sql 顶部说明）
   - type: web
     name: daibiandengjiqi
     runtime: node
@@ -17,11 +19,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DB_PATH
-        value: ./data/app.db
+      - key: DATABASE_URL
+        sync: false   # 不在仓库中硬编码；需在 Render 控制台手动填入 Supabase 连接串
       - key: JWT_SECRET
         generateValue: true
-    # 注意：Render 免费版不支持挂载磁盘(disk)，数据库只能写在实例本地文件系统。
-    # 实例休眠/重启时本地文件会被重置，如需数据永久持久，二选一：
-    #   (A) 升级 Starter 付费实例(约 $7/月)即可挂载磁盘；或
-    #   (B) 接入外部免费 Postgres(Neon / Supabase)替换 SQLite 存储层。
+    # 说明：本服务使用 Supabase 免费 Postgres 作为数据库，
+    # 数据在 Render 免费实例休眠/重启后依然保留（不再丢数据）。
+    # DATABASE_URL 为敏感信息，请用 sync: false 在 Render 控制台单独配置，不要写入仓库。

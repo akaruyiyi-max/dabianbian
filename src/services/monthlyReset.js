@@ -16,7 +16,7 @@ import { getTodayStr } from '../utils/helpers.js';
 /**
  * 执行每月重置检查
  */
-export function checkMonthlyReset(db) {
+export async function checkMonthlyReset(db) {
     const now = new Date();
     const day = now.getDate();
 
@@ -26,48 +26,44 @@ export function checkMonthlyReset(db) {
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
     // 读取上次重置月份
-    const meta = db.prepare('SELECT value FROM meta WHERE key = ?').get('last_monthly_reset');
+    const meta = await db.get('SELECT value FROM meta WHERE key = ?', ['last_monthly_reset']);
     if (meta && meta.value === currentMonth) {
         // 本月已重置过
         return;
     }
 
-    performMonthlyReset(db, currentMonth);
+    await performMonthlyReset(db, currentMonth);
 }
 
 /**
  * 执行实际的重置操作
  */
-function performMonthlyReset(db, resetMonth) {
+async function performMonthlyReset(db, resetMonth) {
     console.log(`[MonthlyReset] 开始执行 ${resetMonth} 月数据重置...`);
 
     try {
-        const txn = db.transaction(() => {
-            // 1. 清空所有打卡记录
-            const deletedCount = db.prepare('DELETE FROM checkins').run().changes;
+        // 1. 清空所有打卡记录
+        const deletedResult = await db.run('DELETE FROM checkins');
+        const deletedCount = deletedResult.changes;
 
-            // 2. 重置所有用户统计
-            const resetCount = db.prepare(`
-                UPDATE user_stats
-                SET current_streak = 0,
-                    longest_streak = 0,
-                    total_checkins = 0,
-                    last_checkin_time = NULL,
-                    last_reminder_sent = NULL
-            `).run().changes;
+        // 2. 重置所有用户统计
+        const resetResult = await db.run(`
+            UPDATE user_stats
+            SET current_streak = 0,
+                longest_streak = 0,
+                total_checkins = 0,
+                last_checkin_time = NULL,
+                last_reminder_sent = NULL
+        `);
+        const resetCount = resetResult.changes;
 
-            // 3. 重置自增序列
-            db.prepare("DELETE FROM sqlite_sequence WHERE name = 'checkins'").run();
+        // 3. 记录重置月份（Postgres 支持 ON CONFLICT ... DO UPDATE，EXCLUDED 关键字一致）
+        await db.run(`
+            INSERT INTO meta (key, value) VALUES ('last_monthly_reset', ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        `, [resetMonth]);
 
-            // 4. 记录重置月份
-            db.prepare(`
-                INSERT INTO meta (key, value) VALUES ('last_monthly_reset', ?)
-                ON CONFLICT(key) DO UPDATE SET value = excluded.value
-            `).run(resetMonth);
-        });
-
-        txn();
-        console.log(`[MonthlyReset] ${resetMonth} 月数据重置完成，所有打卡记录已清空`);
+        console.log(`[MonthlyReset] ${resetMonth} 月数据重置完成，清空打卡 ${deletedCount} 条，重置用户 ${resetCount} 人`);
     } catch (err) {
         console.error('[MonthlyReset] 重置失败:', err);
     }
@@ -77,12 +73,12 @@ function performMonthlyReset(db, resetMonth) {
  * 启动每月重置定时检查
  */
 export function startMonthlyResetService(db) {
-    // 启动时立即检查一次
-    checkMonthlyReset(db);
+    // 启动时立即检查一次（fire-and-forget，内部已捕获异常）
+    checkMonthlyReset(db).catch((e) => console.error('[MonthlyReset] 启动检查异常:', e));
 
     // 每小时检查一次（覆盖服务器跨午夜运行场景）
     setInterval(() => {
-        checkMonthlyReset(db);
+        checkMonthlyReset(db).catch((e) => console.error('[MonthlyReset] 定时检查异常:', e));
     }, 3600000);
 
     console.log('[MonthlyReset] Service started, checking every hour');

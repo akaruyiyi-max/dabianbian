@@ -22,18 +22,18 @@ export function setupSocketHandlers(io, db) {
         }
     });
 
-    io.on('connection', (socket) => {
+    io.on('connection', async (socket) => {
         console.log(`[Socket] User connected: ${socket.username} (id=${socket.userId})`);
 
         // 获取用户头像
-        const user = db.prepare('SELECT avatar_emoji FROM users WHERE id = ?').get(socket.userId);
+        const user = await db.get('SELECT avatar_emoji FROM users WHERE id = ?', [socket.userId]);
         const avatarEmoji = user ? user.avatar_emoji : '\u{1F4A9}';
 
         // 添加到在线列表
         onlineManager.addUser(socket.userId, socket.username, avatarEmoji, socket.id);
 
         // 上线即检查该用户是否需要提醒
-        checkAndSendReminderForUser(socket.userId, io, db);
+        await checkAndSendReminderForUser(socket.userId, io, db);
 
         socket.on('disconnect', () => {
             console.log(`[Socket] User disconnected: ${socket.username}`);

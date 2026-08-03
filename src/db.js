@@ -1,75 +1,83 @@
-import Database from 'better-sqlite3';
+import pg from 'pg';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { mkdirSync } from 'fs';
 
+const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export function initDb() {
-    // 数据库路径可通过环境变量 DB_PATH 覆盖（便于 Render 等平台挂载持久磁盘）
-    const dbPath = process.env.DB_PATH
-        ? process.env.DB_PATH
-        : join(__dirname, '..', 'data', 'app.db');
-
-    // 确保数据库所在目录存在
-    mkdirSync(dirname(dbPath), { recursive: true });
-
-    const db = new Database(dbPath);
-
-    // 启用 WAL 模式提升并发性能
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-
-    // 建表
-    db.exec(`
-        CREATE TABLE IF NOT EXISTS users (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            username      TEXT    NOT NULL UNIQUE,
-            password_hash TEXT    DEFAULT '',
-            avatar_emoji  TEXT    NOT NULL DEFAULT '\u{1F4A9}',
-            created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-
-        CREATE TABLE IF NOT EXISTS checkins (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id      INTEGER NOT NULL,
-            checkin_time TEXT    NOT NULL DEFAULT (datetime('now')),
-            checkin_date TEXT    NOT NULL,
-            note         TEXT    DEFAULT NULL,
-            created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_checkins_user_id ON checkins(user_id);
-        CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON checkins(user_id, checkin_date);
-        CREATE INDEX IF NOT EXISTS idx_checkins_time ON checkins(checkin_time DESC);
-
-        CREATE TABLE IF NOT EXISTS user_stats (
-            user_id             INTEGER PRIMARY KEY,
-            current_streak      INTEGER NOT NULL DEFAULT 0,
-            longest_streak      INTEGER NOT NULL DEFAULT 0,
-            total_checkins      INTEGER NOT NULL DEFAULT 0,
-            last_checkin_time   TEXT,
-            last_reminder_sent  TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
-
-        CREATE TRIGGER IF NOT EXISTS trg_user_stats_init
-        AFTER INSERT ON users
-        BEGIN
-            INSERT INTO user_stats (user_id) VALUES (new.id);
-        END;
-
-        -- 元数据表（记录每月重置等运维状态）
-        CREATE TABLE IF NOT EXISTS meta (
-            key   TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        );
-    `);
-
-    console.log('[DB] SQLite initialized at', dbPath);
-    return db;
+// 让 pg 把 TIMESTAMPTZ / TIMESTAMP 以 ISO 字符串返回，保持与 SQLite 行为一致。
+// 默认 pg 会返回 JS Date 对象，会导致后续字符串处理（parseDbDate 等）出错。
+function isoParser(str) {
+    if (str == null) return str;
+    const iso = str.replace(' ', 'T'); // "2026-08-03 04:20:10.69+00" -> "2026-08-03T04:20:10.69+00"
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? str : d.toISOString(); // -> "2026-08-03T04:20:10.690Z"
 }
+// 1184 = timestamptz, 1114 = timestamp（无时区，但同样用 ISO 字符串返回以免变成 Date）
+pg.types.setTypeParser(1184, isoParser);
+pg.types.setTypeParser(1114, isoParser);
+
+let pool = null;
+
+/**
+ * 初始化数据库（Supabase Postgres）。
+ * 通过环境变量 DATABASE_URL 读取连接串，例如：
+ *   postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres
+ */
+export function initDb() {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+        throw new Error(
+            'DATABASE_URL 环境变量未设置。请配置 Supabase Postgres 连接串（见 .env.example）'
+        );
+    }
+
+    pool = new Pool({
+        connectionString,
+        ssl: { rejectUnauthorized: false }, // Supabase 要求 SSL；自签名证书故跳过校验
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+    });
+
+    // 连接异常时打印，避免进程静默退出
+    pool.on('error', (err) => {
+        console.error('[DB] Unexpected error on idle Postgres client:', err.message);
+    });
+
+    console.log('[DB] Postgres pool initialized (Supabase)');
+    return dbApi;
+}
+
+/**
+ * 异步数据库 API，兼容原 better-sqlite3 的 get/all/run 语义：
+ *   - get(sql, ...params)  -> 单行或 null
+ *   - all(sql, ...params)  -> 行数组
+ *   - run(sql, ...params)  -> { changes, lastID, rows }（INSERT ... RETURNING id 时 lastID 为插入的 id）
+ */
+const dbApi = {
+    async get(sql, ...params) {
+        const res = await pool.query(sql, params);
+        return res.rows[0] || null;
+    },
+    async all(sql, ...params) {
+        const res = await pool.query(sql, params);
+        return res.rows;
+    },
+    async run(sql, ...params) {
+        const res = await pool.query(sql, params);
+        return {
+            changes: res.rowCount ?? 0,
+            lastID: res.rows[0]?.id ?? null,
+            rows: res.rows,
+        };
+    },
+    // 原始查询（保留给需要完整 result 元数据的场景）
+    async query(sql, ...params) {
+        return pool.query(sql, params);
+    },
+    async close() {
+        if (pool) await pool.end();
+    },
+};

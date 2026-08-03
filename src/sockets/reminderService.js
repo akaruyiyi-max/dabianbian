@@ -22,10 +22,10 @@ const ACHIEVEMENT_TIERS = [
  * 启动提醒服务 - 定时批量推送双规则弹幕
  */
 export function startReminderService(io, db) {
-    setTimeout(() => broadcastDanmakuBatch(io, db), 3000);
+    setTimeout(() => { broadcastDanmakuBatch(io, db).catch(e => console.error('[Reminder] batch error:', e)); }, 3000);
 
     setInterval(() => {
-        broadcastDanmakuBatch(io, db);
+        broadcastDanmakuBatch(io, db).catch(e => console.error('[Reminder] batch error:', e));
     }, config.REMINDER_CHECK_INTERVAL_MS);
 
     console.log(`[Reminder] Service started, checking every ${config.REMINDER_CHECK_INTERVAL_MS / 1000}s`);
@@ -34,15 +34,15 @@ export function startReminderService(io, db) {
 /**
  * 查询所有超过 24 小时未打卡的用户（规则一：通报批评）
  */
-function getAllOverdueUsers(db) {
+async function getAllOverdueUsers(db) {
     const now = Date.now();
-    const rows = db.prepare(`
+    const rows = await db.all(`
         SELECT
             u.id, u.username, u.avatar_emoji, u.created_at,
             us.last_checkin_time
         FROM users u
         JOIN user_stats us ON us.user_id = u.id
-    `).all();
+    `);
 
     const overdue = [];
     for (const row of rows) {
@@ -67,15 +67,15 @@ function getAllOverdueUsers(db) {
 /**
  * 查询所有用户今日打卡次数及对应称号（规则二：打卡成就）
  */
-function getAllAchievementUsers(db) {
+async function getAllAchievementUsers(db) {
     const today = getTodayStr();
-    const rows = db.prepare(`
+    const rows = await db.all(`
         SELECT
             u.id AS target_user_id,
             u.username AS target_username,
             (SELECT COUNT(*) FROM checkins c WHERE c.user_id = u.id AND c.checkin_date = ?) AS today_count
         FROM users u
-    `).all(today);
+    `, [today]);
 
     return rows.map(row => {
         const count = Math.min(row.today_count, 10);
@@ -94,9 +94,9 @@ function getAllAchievementUsers(db) {
 /**
  * 批量广播双规则弹幕 — 通报批评 + 打卡成就
  */
-export function broadcastDanmakuBatch(io, db) {
-    const overdueUsers = getAllOverdueUsers(db);
-    const achievementUsers = getAllAchievementUsers(db);
+export async function broadcastDanmakuBatch(io, db) {
+    const overdueUsers = await getAllOverdueUsers(db);
+    const achievementUsers = await getAllAchievementUsers(db);
 
     io.emit('reminder:batch', {
         overdue: overdueUsers,
@@ -105,9 +105,8 @@ export function broadcastDanmakuBatch(io, db) {
 
     if (overdueUsers.length > 0) {
         const now = new Date().toISOString();
-        const updateStmt = db.prepare(`UPDATE user_stats SET last_reminder_sent = ? WHERE user_id = ?`);
         for (const user of overdueUsers) {
-            updateStmt.run(now, user.target_user_id);
+            await db.run('UPDATE user_stats SET last_reminder_sent = ? WHERE user_id = ?', [now, user.target_user_id]);
         }
     }
 
@@ -117,6 +116,6 @@ export function broadcastDanmakuBatch(io, db) {
 /**
  * 用户上线时 — 推送当前双规则弹幕
  */
-export function checkAndSendReminderForUser(userId, io, db) {
-    broadcastDanmakuBatch(io, db);
+export async function checkAndSendReminderForUser(userId, io, db) {
+    await broadcastDanmakuBatch(io, db);
 }
