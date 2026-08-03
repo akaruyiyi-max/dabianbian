@@ -1,5 +1,5 @@
 import pg from 'pg';
-import dns from 'dns';
+import * as dns from 'node:dns';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
