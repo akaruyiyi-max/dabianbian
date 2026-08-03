@@ -45,11 +45,22 @@ const Api = {
         return data;
     },
 
-    // ---- 认证（无密码，仅需用户名） ----
-    login(username) {
+    // ---- 认证（无密码，仅需用户名 + 房间邀请码） ----
+    login(username, code) {
         return this.request('/api/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ username }),
+            body: JSON.stringify({ username, code }),
+        });
+    },
+
+    getInviteStatus() {
+        return this.request('/api/auth/invite-status');
+    },
+
+    setupInvite(code) {
+        return this.request('/api/auth/setup', {
+            method: 'POST',
+            body: JSON.stringify({ code }),
         });
     },
 

@@ -26,6 +26,12 @@
                         <input type="text" id="username" class="form-input" placeholder="请输入中文用户名" autocomplete="username" maxlength="20">
                     </div>
 
+                    <div class="form-group" id="invite-group">
+                        <label class="form-label" for="invite-code" id="invite-label">邀请码</label>
+                        <input type="text" id="invite-code" class="form-input" placeholder="输入房间邀请码" autocomplete="off" maxlength="40">
+                        <p class="form-hint" id="invite-hint"></p>
+                    </div>
+
                     <button type="submit" class="btn-primary" id="auth-submit" style="width:100%;" onclick="Auth.submit()">
                         💩 进入 💩
                     </button>
@@ -45,6 +51,8 @@
         // 已登录用户直接跳转
         if (Auth.isLoggedIn()) {
             window.location.href = '/dashboard.html';
+        } else {
+            Auth.init();
         }
     </script>
 </body>

@@ -370,6 +370,13 @@ body {
     display: block;
 }
 
+.form-hint {
+    margin: 6px 2px 0;
+    font-size: 0.78rem;
+    color: var(--color-text-light, #999);
+    line-height: 1.4;
+}
+
 .login-footer {
     margin-top: 24px;
     font-size: 0.75rem;

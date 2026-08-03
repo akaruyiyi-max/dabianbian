@@ -1,10 +1,12 @@
 /**
  * 答辩记录仪 - 认证模块
- * 处理登录/登出/Token管理（无密码模式，仅需用户名）
+ * 处理登录/登出/Token管理（无密码 + 房间邀请码模式）
  */
 const Auth = {
     user: null,
     stats: null,
+    roomInitialized: true,   // 房间是否已设置邀请码（默认假设已初始化，失败时回退）
+    mode: 'login',           // 'login' | 'setup'
 
     // ---- Token 状态 ----
     getToken() {
@@ -13,6 +15,67 @@ const Auth = {
 
     isLoggedIn() {
         return !!this.getToken();
+    },
+
+    // ---- 页面初始化 ----
+    async init() {
+        // 已登录直接进
+        if (this.isLoggedIn()) {
+            window.location.href = '/dashboard.html';
+            return;
+        }
+
+        // 查询房间是否已初始化（是否已有人设置邀请码）
+        try {
+            const status = await Api.getInviteStatus();
+            this.roomInitialized = status.initialized;
+        } catch (e) {
+            this.roomInitialized = true; // 查询失败则视为已初始化，避免卡死
+        }
+
+        this._renderForm();
+    },
+
+    // ---- 根据状态渲染登录表单 ----
+    _renderForm() {
+        const group = document.getElementById('invite-group');
+        const label = document.getElementById('invite-label');
+        const input = document.getElementById('invite-code');
+        const hint = document.getElementById('invite-hint');
+        const btn = document.getElementById('auth-submit');
+        if (!group || !input) return;
+
+        const storedCode = localStorage.getItem('poop_invite');
+
+        if (this.roomInitialized === false) {
+            // 第一位进入：设置邀请码
+            this.mode = 'setup';
+            label.textContent = '设置房间邀请码（你是第一位）';
+            input.placeholder = '设置一个邀请码，发给朋友（4-40 位）';
+            hint.textContent = '房间尚未创建，请先设置一个邀请码，之后把它发给朋友即可加入。';
+            btn.textContent = '🚽 创建房间并进入 🚽';
+            group.style.display = 'block';
+            input.disabled = false;
+        } else if (storedCode) {
+            // 已记住邀请码：日常只需填用户名
+            this.mode = 'login';
+            label.textContent = '邀请码（已记住）';
+            input.value = storedCode;
+            input.disabled = true;
+            hint.textContent = '';
+            btn.textContent = '💩 进入 💩';
+            group.style.display = 'block';
+        } else {
+            // 已知房间但未记住码：需填邀请码
+            this.mode = 'login';
+            label.textContent = '邀请码';
+            input.placeholder = '输入房间邀请码';
+            input.value = '';
+            input.disabled = false;
+            hint.textContent = '向创建房间的人索要邀请码';
+            btn.textContent = '💩 进入 💩';
+            group.style.display = 'block';
+        }
     },
 
     // ---- 错误显示 ----
@@ -30,9 +93,20 @@ const Auth = {
         el.classList.remove('show');
     },
 
-    // ---- 提交登录（仅需用户名） ----
+    // ---- 提取邀请码 ----
+    _getCode() {
+        const input = document.getElementById('invite-code');
+        const stored = localStorage.getItem('poop_invite');
+        if (this.mode === 'login' && stored && input && input.disabled) {
+            return stored;
+        }
+        return input ? input.value.trim() : '';
+    },
+
+    // ---- 提交（设置 or 登录） ----
     async submit() {
         const username = document.getElementById('username').value.trim();
+        const code = this._getCode();
 
         this.clearError();
 
@@ -52,14 +126,40 @@ const Auth = {
         btn.textContent = '处理中...';
 
         try {
-            const data = await Api.login(username);
+            // 首次设定邀请码
+            if (this.mode === 'setup') {
+                if (code.length < 4) {
+                    this.showError('邀请码至少 4 位');
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    return;
+                }
+                try {
+                    await Api.setupInvite(code);
+                } catch (setupErr) {
+                    // 房间已被他人抢先创建
+                    if (setupErr.error === 'ALREADY_INITIALIZED') {
+                        this.roomInitialized = true;
+                        this._renderForm();
+                        this.showError('房间已由他人创建，请输入邀请码');
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                        return;
+                    }
+                    throw setupErr;
+                }
+            }
+
+            // 登录
+            const data = await Api.login(username, code);
 
             Api.setToken(data.token);
             localStorage.setItem('poop_user', JSON.stringify(data.user));
+            localStorage.setItem('poop_invite', code);
 
             window.location.href = '/dashboard.html';
         } catch (err) {
-            this.showError(err.message || '登录失败，请重试');
+            this.showError(err.message || '操作失败，请重试');
             btn.disabled = false;
             btn.textContent = originalText;
         }
