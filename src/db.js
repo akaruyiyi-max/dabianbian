@@ -43,19 +43,25 @@ export function initDb() {
         );
     }
 
-    // 解析连接串中的主机名，强制 DNS 解析为 IPv4 地址
+    // 解析连接串中的主机名，强制 DNS 解析为纯 IPv4 地址
+    // 关键：必须用 { family: 4 } 严格请求 A 记录，不能用 V4MAPPED（会返回 IPv4-mapped IPv6）
     let connectionString = rawUrl;
     try {
         const urlObj = new URL(rawUrl);
         const hostname = urlObj.hostname;
-        // 同步 DNS 查询，仅取 A 记录 (IPv4)
-        const { address } = dns.lookupSync(hostname, { hints: dns.ADDRCONFIG | dns.V4MAPPED });
-        if (address && address !== hostname) {
+        console.log(`[DB] Resolving hostname: ${hostname}`);
+        // { family: 4 } = 仅返回 IPv4 地址（A 记录）
+        const { address } = dns.lookupSync(hostname, { family: 4 });
+        console.log(`[DB] DNS result: ${hostname} -> ${address}`);
+        if (address && !address.includes(':')) {
             connectionString = rawUrl.replace(hostname, address);
-            console.log(`[DB] DNS resolve: ${hostname} -> ${address} (IPv4)`);
+            console.log(`[DB] ✅ Forced IPv4 connection: ${hostname} -> ${address}`);
+        } else {
+            console.error(`[DB] ⚠️  DNS returned non-IPv4: ${address}, will try anyway`);
         }
     } catch (e) {
-        console.error('[DB] ⚠️  DNS IPv4 resolution failed, using original URL:', e.message);
+        console.error('[DB] ⚠️  DNS resolution FAILED:', e.message);
+        console.error('[DB] Continuing with original URL (may fail on IPv6-only networks)');
     }
 
     pool = new Pool({
