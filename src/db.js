@@ -1,5 +1,4 @@
 import pg from 'pg';
-import { promises as dnsPromises, setServers as dnsSetServers, getServers as dnsGetServers } from 'node:dns';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -20,15 +19,50 @@ pg.types.setTypeParser(1114, isoParser);
 let pool = null;
 
 /**
+ * 通过 Google DNS-over-HTTPS API 查询 A 记录（IPv4）。
+ * 完全不依赖 Node.js dns 模块（在 Render 上 lookup/resolve4 均不可靠）。
+ */
+async function resolveIPv4ViaDoH(hostname) {
+    // Google DoH: https://dns.google/resolve?name=HOST&type=A
+    const dohUrl = `https://dns.google/resolve?name=${encodeURIComponent(hostname)}&type=A`;
+    console.log(`[DB] Querying Google DoH for ${hostname}...`);
+
+    try {
+        const res = await fetch(dohUrl, {
+            headers: { Accept: 'application/dns-json' },
+            signal: AbortSignal.timeout(8000),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (data.Answer && Array.isArray(data.Answer)) {
+            // A 记录的 type = 1
+            const aRecord = data.Answer.find(r => r.type === 1);
+            if (aRecord && aRecord.data) {
+                console.log(`[DB] ✅ DoH: ${hostname} -> ${aRecord.data} (IPv4)`);
+                return aRecord.data;
+            }
+        }
+        throw new Error('No A record in response');
+    } catch (e) {
+        console.error(`[DB] Google DoH failed: ${e.message}`);
+        throw e;
+    }
+}
+
+/**
  * 初始化数据库（Supabase Postgres）。
  *
- * 异步函数：启动时用 dns.promises.lookup({ family: 4 }) 将主机名解析为纯 IPv4 地址，
- * 然后替换连接串中的主机名为 IPv4 IP，再创建 Pool。
+ * 异步函数：通过 DNS-over-HTTPS 获取 Supabase 主机名的 IPv4 地址，
+ * 替换连接串中的主机名后创建 Pool。彻底绕过 node-postgres/libpq 的 IPv6 问题。
  *
- * 原因：Supabase DNS 返回 AAAA (IPv6)，Render 免费网络不支持 IPv6 → ENETUNREACH。
- *       node-postgres 的 family:4 参数在 connectionString 和独立参数模式下均不生效
- *       （底层 libpq 绕过 Node 的 family 设置）。
- *       唯一可靠的方式是提前解析为 IPv4 IP，让 pg 直接连 IP 而不再查 DNS。
+ * 问题链：
+ *   Supabase DNS 返回 AAAA → Render 不支持 IPv6 → ENETUNREACH
+ *   family:4 被 libpq 忽略
+ *   dns.lookupSync 在 ESM 下不是函数
+ *   dns.promises.lookup/resolve4 在 Render 上 ENOTFOUND
+ *
+ * 最终方案：Google DoH API (HTTPS) 查 IPv4 → 替换连接串主机名
  */
 export async function initDb() {
     const rawUrl = process.env.DATABASE_URL;
@@ -41,48 +75,19 @@ export async function initDb() {
     const maskedUrl = rawUrl.replace(/\/\/([^:]+):([^@]+)@/, '//\$1:****@');
     console.log('[DB] DATABASE_URL (masked):', maskedUrl);
 
-    // 解析主机名，异步 DNS 查询仅取 A 记录 (IPv4)
-    // 注意：dns.promises.lookup 使用 OS 解析器，在 Render 上可能 ENOTFOUND。
-    //       改用 dns.promises.resolve4 直接查 DNS 服务器（A 记录），更可靠。
     const urlObj = new URL(rawUrl);
     const hostname = urlObj.hostname;
 
     let finalUrl = rawUrl;
     try {
-        console.log(`[DB] Resolving ${hostname} to IPv4 (DNS A record)...`);
-        // 先尝试用系统配置的 DNS 服务器
-        let addresses;
-        try {
-            addresses = await dnsPromises.resolve4(hostname);
-        } catch (e1) {
-            // 系统解析失败，改用 Google 公共 DNS (8.8.8.8)
-            console.log(`[DB] System DNS failed (${e1.message}), trying Google DNS (8.8.8.8)...`);
-            const originalServers = dnsGetServers();
-            dnsSetServers(['8.8.8.8', '8.8.4.4']);
-            try {
-                addresses = await dnsPromises.resolve4(hostname);
-                console.log(`[DB] ✅ Google DNS resolved successfully`);
-            } catch (e2) {
-                // 再试 Cloudflare DNS
-                console.log(`[DB] Google DNS failed, trying Cloudflare DNS (1.1.1.1)...`);
-                dnsSetServers(['1.1.1.1', '1.0.0.1']);
-                addresses = await dnsPromises.resolve4(hostname);
-                console.log(`[DB] ✅ Cloudflare DNS resolved successfully`);
-            }
-            dnsSetServers(originalServers); // 恢复原 DNS
-        }
+        const ipv4 = await resolveIPv4ViaDoH(hostname);
 
-        if (addresses && addresses.length > 0) {
-            const ipv4 = addresses[0];
-            console.log(`[DB] ✅ DNS: ${hostname} -> ${ipv4} (IPv4)`);
-
-            // 将连接串中的主机名替换为 IPv4 地址
-            finalUrl = rawUrl.split(hostname).join(ipv4);
-            console.log('[DB] Using IPv4 connection string');
-        }
+        // 将连接串中所有出现的主机名替换为 IPv4 IP
+        finalUrl = rawUrl.split(hostname).join(ipv4);
+        console.log('[DB] ✅ Using forced-IPv4 connection string');
     } catch (e) {
-        console.error('[DB] ⚠️  All DNS resolution methods failed:', e.message);
-        console.error('[DB] Will try original URL (may ENETUNREACH on Render)');
+        console.error('[DB] ⚠️  All IPv4 resolution methods failed:', e.message);
+        console.error('[DB] ⚠️  Proceeding with original URL — expect ENETUNREACH');
     }
 
     pool = new Pool({
