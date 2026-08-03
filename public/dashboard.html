@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💩 答辩记录仪 - 仪表盘</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💩</text></svg>">
+</head>
+<body>
+    <!-- 背景浮动屁桃君 -->
+    <img class="bg-peach bg-peach-1" src="/assets/peach-kun/peach-kun-base.svg" alt="">
+    <img class="bg-peach bg-peach-2" src="/assets/peach-kun/peach-kun-cheer.svg" alt="">
+    <img class="bg-peach bg-peach-3" src="/assets/peach-kun/peach-kun-wink.svg" alt="">
+
+    <!-- 连接状态横幅 -->
+    <div class="connection-banner" id="connection-banner">连接断开，正在重连中...</div>
+
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <div class="navbar-peach"></div>
+            <span>答辩记录仪</span>
+        </div>
+        <div class="navbar-info">
+            <div class="navbar-online">
+                <span class="online-dot"></span>
+                <span>在线: <span id="online-count">0</span>人</span>
+            </div>
+            <div class="navbar-user">
+                <span id="nav-avatar">💩</span>
+                <span id="nav-username">...</span>
+                <span class="navbar-streak" id="nav-streak">🔥×0天</span>
+            </div>
+            <button class="btn-logout" onclick="Auth.logout()">溜了 👋</button>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="main-grid">
+        <!-- 左列: 打卡 + 历史 -->
+        <div>
+            <!-- 打卡卡片 -->
+            <div class="card checkin-card" style="margin-bottom: 16px;">
+                <div class="card-title">🔥 当前连续</div>
+                <div class="streak-display" id="current-streak">0</div>
+                <div class="streak-label">天连续打卡</div>
+                <div class="last-checkin" id="last-checkin">上次打卡: 从未</div>
+                <input type="text" class="note-input" id="note-input" placeholder="备注 (可选): 如"很顺畅~"" maxlength="100">
+                <button class="btn-checkin" id="checkin-btn" onclick="Dashboard.checkin()">💩 一键打卡 💩</button>
+                <button class="btn-undo" id="undo-btn" onclick="Dashboard.undoCheckin()" disabled>🚽 把屎悄悄吸回去</button>
+            </div>
+
+            <!-- 打卡日历 -->
+            <div class="card">
+                <div class="card-title">
+                    <span>📅 本月打卡日历</span>
+                    <button class="btn-monthly-report" id="monthly-report-btn" onclick="Dashboard._showMonthlyReport()" style="display:none;">📊 月报</button>
+                </div>
+                <div id="calendar-container" class="calendar-container">
+                    <div class="calendar-loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右列: 排行榜 + 实时动态 -->
+        <div>
+            <!-- 排行榜 -->
+            <div class="card" style="margin-bottom: 16px;">
+                <div class="card-title">💩 今日排行榜 💩</div>
+                <div id="leaderboard-list" class="leaderboard-list">
+                    <div class="empty-state">
+                        <div class="peach-illustration peach-md peach-confused"></div>
+                        <p class="empty-state-text">还没有人打卡呢，快来当第一个💩</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 实时动态 -->
+            <div class="card">
+                <div class="card-title">💩 实时动态 💩</div>
+                <div id="feed-list" class="feed-list">
+                    <div class="empty-state">
+                        <div class="peach-illustration peach-md peach-confused"></div>
+                        <p class="empty-state-text">还没有动态，打卡后这里会实时更新~</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹幕层 -->
+    <div class="danmaku-layer" id="danmaku-layer"></div>
+    <div class="danmaku-controls" id="danmaku-controls" style="display:none;">
+        <button class="danmaku-close-btn" onclick="DanmakuManager.clearAll()">🗑️ 清屏</button>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- 庆祝弹窗容器 -->
+    <div id="celebration-container"></div>
+
+    <p class="copyright">答辩记录仪 v1.0 | 本应用使用屁桃君形象仅供学习娱乐 💩</p>
+
+    <!-- Socket.io 客户端 -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/socket.js"></script>
+    <script src="/js/leaderboard.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script>
+        // 需要登录才能访问，认证通过后再初始化仪表盘
+        (async () => {
+            const ok = await Auth.requireAuth();
+            if (!ok) return;
+            Dashboard.init();
+            SocketClient.init();
+        })();
+    </script>
+</body>
+</html>

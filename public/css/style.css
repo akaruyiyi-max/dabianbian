@@ -1,0 +1,1601 @@
+/* ============================================
+   答辩记录仪 - 全局样式
+   粉红炫彩 + 屁桃君角色装饰
+   ============================================ */
+
+/* CSS 变量 - 粉红炫彩设计系统 */
+:root {
+    --color-bg: #FFF0F5;
+    --color-bg-gradient: linear-gradient(135deg, #FFE0EC 0%, #FFC8DD 30%, #FFAFCC 60%, #BDE0FE 100%);
+    --color-card: rgba(255, 255, 255, 0.85);
+    --color-card-border: rgba(255, 105, 180, 0.3);
+
+    --color-primary: #FF69B4;
+    --color-primary-gradient: linear-gradient(135deg, #FF69B4, #FF1493, #DA70D6);
+    --color-secondary: #DA70D6;
+    --color-accent: #00CED1;
+    --color-rainbow: linear-gradient(90deg, #FF69B4, #FF1493, #DA70D6, #00CED1, #FFD700);
+
+    --color-text: #4A0E4E;
+    --color-text-light: #C71585;
+    --color-text-white: #FFFFFF;
+
+    --color-success: #FF69B4;
+    --color-warning: #FFD700;
+    --color-error: #FF1493;
+    --color-online: #00CED1;
+
+    --radius-card: 20px;
+    --radius-button: 16px;
+    --radius-pill: 999px;
+    --shadow-card: 0 8px 24px rgba(255, 105, 180, 0.15);
+    --shadow-button: 0 4px 12px rgba(255, 20, 147, 0.3);
+    --shadow-glow: 0 0 20px rgba(255, 105, 180, 0.4);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--color-bg-gradient);
+    background-attachment: fixed;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    color: var(--color-text);
+}
+
+/* ============================================
+   屁桃君背景浮动装饰
+   ============================================ */
+.bg-peach {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.12;
+    animation: floatPeach 8s ease-in-out infinite;
+}
+.bg-peach-1 { top: 8%; left: 3%; width: 180px; animation-delay: 0s; }
+.bg-peach-2 { bottom: 5%; right: 4%; width: 200px; animation-delay: 3s; animation-name: floatPeachMirrored; }
+.bg-peach-3 { top: 45%; right: 8%; width: 150px; animation-delay: 5s; opacity: 0.08; }
+
+@keyframes floatPeach {
+    0%, 100% { transform: translateY(0) rotate(-8deg); }
+    50% { transform: translateY(-25px) rotate(8deg); }
+}
+@keyframes floatPeachMirrored {
+    0%, 100% { transform: scaleX(-1) translateY(0) rotate(-8deg); }
+    50% { transform: scaleX(-1) translateY(-25px) rotate(8deg); }
+}
+
+/* ============================================
+   通用组件
+   ============================================ */
+.card {
+    background: var(--color-card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 2px solid var(--color-card-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+    position: relative;
+    z-index: 1;
+}
+
+.btn-primary {
+    background: var(--color-primary-gradient);
+    color: var(--color-text-white);
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 14px 32px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    box-shadow: var(--shadow-button);
+    transition: var(--transition);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+.btn-primary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: var(--shadow-glow);
+}
+.btn-primary:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.6);
+    color: var(--color-text);
+    border: 2px solid var(--color-card-border);
+    border-radius: var(--radius-pill);
+    padding: 10px 24px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: var(--transition);
+    cursor: pointer;
+}
+.btn-secondary:hover {
+    background: rgba(255, 105, 180, 0.15);
+    border-color: var(--color-primary);
+}
+
+/* 打卡大按钮 */
+.btn-checkin {
+    background: var(--color-rainbow);
+    background-size: 200% 200%;
+    animation: rainbowShift 3s ease infinite;
+    color: white;
+    font-size: 1.5rem;
+    padding: 20px 48px;
+    border-radius: var(--radius-pill);
+    box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    cursor: pointer;
+    border: 3px solid rgba(255,255,255,0.6);
+    transition: var(--transition);
+    width: 100%;
+    font-weight: bold;
+}
+.btn-checkin:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 10px 30px rgba(255, 20, 147, 0.5);
+}
+.btn-checkin:active {
+    transform: translateY(0) scale(0.98);
+}
+.btn-checkin:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    animation: none;
+}
+
+/* 防作弊撤销按钮 */
+.btn-undo {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    border: 2px dashed rgba(147, 112, 219, 0.5);
+    background: rgba(147, 112, 219, 0.1);
+    color: #6B3FA0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.btn-undo:hover:not(:disabled) {
+    background: rgba(147, 112, 219, 0.2);
+    border-color: rgba(147, 112, 219, 0.8);
+    transform: translateY(-1px);
+}
+.btn-undo:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+}
+.btn-undo:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    border-style: solid;
+}
+
+@keyframes rainbowShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* ============================================
+   屁桃君角色配图
+   ============================================ */
+.peach-illustration {
+    display: inline-block;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    vertical-align: middle;
+}
+.peach-sm { width: 32px; height: 32px; }
+.peach-md { width: 64px; height: 64px; }
+.peach-lg { width: 120px; height: 120px; }
+.peach-xl { width: 200px; height: 200px; }
+
+.peach-login    { background-image: url('/assets/peach-kun/peach-kun-base.svg'); }
+.peach-success  { background-image: url('/assets/peach-kun/peach-kun-happy.svg'); }
+.peach-shy      { background-image: url('/assets/peach-kun/peach-kun-shy.svg'); }
+.peach-sleepy   { background-image: url('/assets/peach-kun/peach-kun-sleepy.svg'); }
+.peach-cry      { background-image: url('/assets/peach-kun/peach-kun-cry.svg'); }
+.peach-confused { background-image: url('/assets/peach-kun/peach-kun-confused.svg'); }
+.peach-cheer    { background-image: url('/assets/peach-kun/peach-kun-cheer.svg'); }
+.peach-wave     { background-image: url('/assets/peach-kun/peach-wave.svg'); }
+.peach-crown    { background-image: url('/assets/peach-kun/peach-crown.svg'); }
+.peach-wink     { background-image: url('/assets/peach-kun/peach-kun-wink.svg'); }
+
+/* 打卡成功弹跳动画 */
+@keyframes bounceIn {
+    0% { transform: translateY(100px) scale(0.5); opacity: 0; }
+    60% { transform: translateY(-20px) scale(1.1); opacity: 1; }
+    80% { transform: translateY(10px) scale(0.95); }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.peach-bounce {
+    animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* 加载旋转动画 */
+@keyframes spinSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.peach-loading {
+    animation: spinSlow 2s linear infinite;
+}
+
+/* 导航栏小屁桃君 logo */
+.navbar-peach {
+    width: 40px;
+    height: 40px;
+    background-image: url('/assets/peach-kun/peach-kun-base.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    animation: gentleWiggle 4s ease-in-out infinite;
+}
+@keyframes gentleWiggle {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
+}
+
+/* ============================================
+   登录/注册页
+   ============================================ */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.login-container {
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+}
+
+.login-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-text);
+    margin: 16px 0 8px;
+    text-shadow: 0 2px 4px rgba(255, 105, 180, 0.2);
+}
+
+.login-subtitle {
+    font-size: 1rem;
+    color: var(--color-text-light);
+    margin-bottom: 24px;
+}
+
+.login-peach {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto;
+}
+
+.login-card {
+    padding: 32px 28px;
+    text-align: left;
+}
+
+/* Tab 切换 */
+.auth-tabs {
+    display: flex;
+    margin-bottom: 24px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 105, 180, 0.1);
+    padding: 4px;
+}
+.auth-tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-text-light);
+    transition: var(--transition);
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+}
+.auth-tab.active {
+    background: var(--color-primary-gradient);
+    color: white;
+    box-shadow: var(--shadow-button);
+}
+
+/* 表单 */
+.form-group {
+    margin-bottom: 18px;
+}
+.form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 6px;
+}
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--color-card-border);
+    border-radius: var(--radius-button);
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--color-text);
+    transition: var(--transition);
+    outline: none;
+}
+.form-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.15);
+    background: rgba(255, 255, 255, 0.9);
+}
+.form-input::placeholder {
+    color: rgba(74, 14, 78, 0.35);
+}
+
+.form-error {
+    background: rgba(255, 20, 147, 0.1);
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-button);
+    padding: 10px 16px;
+    color: var(--color-error);
+    font-size: 0.9rem;
+    margin-top: 12px;
+    display: none;
+}
+.form-error.show {
+    display: block;
+}
+
+.login-footer {
+    margin-top: 24px;
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+    opacity: 0.7;
+}
+
+/* ============================================
+   仪表盘 - 导航栏
+   ============================================ */
+.navbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 2px solid var(--color-card-border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--color-text);
+    white-space: nowrap;
+}
+
+.navbar-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.navbar-online {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+    background: rgba(0, 206, 209, 0.1);
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+}
+.online-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--color-online);
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.navbar-streak {
+    background: rgba(255, 105, 180, 0.12);
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 0.9rem;
+}
+
+.btn-logout {
+    background: rgba(255, 20, 147, 0.1);
+    color: var(--color-error);
+    border: 1.5px solid rgba(255, 20, 147, 0.2);
+    border-radius: var(--radius-pill);
+    padding: 6px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.btn-logout:hover {
+    background: rgba(255, 20, 147, 0.2);
+}
+
+/* ============================================
+   仪表盘 - 主布局
+   ============================================ */
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+@media (min-width: 768px) {
+    .main-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        padding: 24px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .main-grid {
+        grid-template-columns: 1fr 1.2fr;
+        gap: 32px;
+    }
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ============================================
+   打卡卡片
+   ============================================ */
+.checkin-card {
+    text-align: center;
+}
+
+.streak-display {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin: 8px 0;
+}
+.streak-display::before {
+    content: '\1F525\00D7';
+    font-size: 0.8em;
+    margin-right: 4px;
+}
+.streak-label {
+    font-size: 0.95rem;
+    color: var(--color-text-light);
+    margin-bottom: 16px;
+}
+
+.last-checkin {
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+    margin-bottom: 16px;
+}
+
+.note-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--color-card-border);
+    border-radius: var(--radius-button);
+    font-size: 0.95rem;
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--color-text);
+    transition: var(--transition);
+    outline: none;
+    margin-bottom: 16px;
+}
+.note-input:focus {
+    border-color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.9);
+}
+.note-input::placeholder {
+    color: rgba(74, 14, 78, 0.35);
+}
+
+/* ============================================
+   打卡日历
+   ============================================ */
+.calendar-container {
+    margin-top: 8px;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.calendar-weekday {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    padding: 6px 0;
+}
+
+.calendar-cell {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    position: relative;
+    transition: var(--transition);
+    cursor: default;
+    overflow: hidden;
+    padding: 2px;
+}
+
+.calendar-cell.empty {
+    background: transparent;
+}
+
+/* 日期数字 — 始终显示在格子左上角 */
+.cal-day-num {
+    position: absolute;
+    top: 3px;
+    left: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(74, 14, 78, 0.45);
+    z-index: 1;
+    line-height: 1;
+}
+
+/* 已打卡日期 */
+.calendar-cell.has-checkin {
+    background: linear-gradient(135deg, rgba(255, 105, 180, 0.15), rgba(255, 215, 0, 0.1));
+    border: 2px solid rgba(255, 105, 180, 0.3);
+}
+
+/* 屎图标容器 — 自动换行居中 */
+.cal-poops {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    margin-top: 10px;
+    max-width: 100%;
+    line-height: 1;
+}
+
+.cal-poop {
+    line-height: 1;
+}
+
+/* 可补打卡的过去日期 */
+.calendar-cell.can-makeup {
+    background: rgba(255, 255, 255, 0.4);
+    border: 2px dashed rgba(147, 112, 219, 0.35);
+    cursor: pointer;
+}
+
+.calendar-cell.can-makeup:hover {
+    background: rgba(147, 112, 219, 0.15);
+    border-color: rgba(147, 112, 219, 0.6);
+    transform: scale(1.05);
+}
+
+.cal-plus {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: rgba(147, 112, 219, 0.5);
+    margin-top: 10px;
+}
+
+.calendar-cell.can-makeup:hover .cal-plus {
+    color: rgba(147, 112, 219, 0.9);
+}
+
+/* 可删除补打卡的过去日期 */
+.calendar-cell.can-delete {
+    cursor: pointer;
+}
+
+.calendar-cell.can-delete:hover {
+    background: linear-gradient(135deg, rgba(255, 20, 147, 0.2), rgba(255, 105, 180, 0.15));
+    border-color: rgba(255, 20, 147, 0.6);
+    transform: scale(1.05);
+}
+
+.calendar-cell.can-delete::after {
+    content: '\1F5D1\FE0F';
+    position: absolute;
+    bottom: 2px;
+    right: 3px;
+    font-size: 0.6rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.calendar-cell.can-delete:hover::after {
+    opacity: 0.7;
+}
+
+/* 今天 */
+.calendar-cell.is-today {
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 0 8px rgba(255, 105, 180, 0.3);
+}
+
+/* 未来日期 */
+.calendar-cell.future {
+    opacity: 0.4;
+}
+
+/* 日历提示 */
+.calendar-hint {
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.calendar-hint .cal-poop {
+    font-size: 1rem;
+}
+
+.calendar-hint .cal-plus {
+    font-size: 0.9rem;
+}
+
+/* 补打卡确认弹窗 */
+.makeup-dialog {
+    max-width: 360px;
+}
+
+.makeup-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.makeup-buttons .btn-secondary {
+    flex: 1;
+}
+
+.makeup-buttons .btn-primary {
+    flex: 1;
+}
+
+/* 删除确认按钮 */
+.btn-delete-confirm {
+    flex: 1;
+    background: linear-gradient(135deg, #FF4444, #FF1493);
+    color: white;
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 10px 24px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
+}
+.btn-delete-confirm:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 16px rgba(255, 68, 68, 0.5);
+}
+
+/* 月报按钮 */
+.btn-monthly-report {
+    margin-left: auto;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #4A0E4E;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius-pill);
+    padding: 4px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
+    white-space: nowrap;
+}
+.btn-monthly-report:hover {
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(255, 165, 0, 0.5);
+}
+
+/* 月报弹窗 */
+.monthly-report-box {
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.report-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.report-stat-item {
+    background: rgba(255, 105, 180, 0.08);
+    border: 1px solid rgba(255, 105, 180, 0.15);
+    border-radius: var(--radius-button);
+    padding: 12px 8px;
+    text-align: center;
+}
+
+.report-stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    line-height: 1.2;
+}
+
+.report-stat-label {
+    font-size: 0.78rem;
+    color: var(--color-text-light);
+    margin-top: 4px;
+}
+
+.report-highlight {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.88rem;
+    color: var(--color-text);
+    background: rgba(255, 215, 0, 0.08);
+    border-radius: var(--radius-button);
+    padding: 10px 14px;
+    margin-bottom: 16px;
+}
+
+.report-highlight strong {
+    color: var(--color-primary);
+}
+
+.report-chart-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 10px;
+    text-align: left;
+}
+
+.report-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 100px;
+    overflow-x: auto;
+    padding: 4px 0 20px;
+    border-bottom: 2px solid rgba(255, 105, 180, 0.1);
+    margin-bottom: 16px;
+}
+
+.report-bar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 24px;
+    height: 100%;
+    justify-content: flex-end;
+    position: relative;
+}
+
+.report-bar {
+    width: 100%;
+    min-width: 16px;
+    background: linear-gradient(180deg, #FF69B4, #FF1493);
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 2px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.report-bar:hover {
+    background: linear-gradient(180deg, #FF1493, #DA70D6);
+    transform: scaleY(1.05);
+}
+
+.report-bar-count {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.report-bar-day {
+    position: absolute;
+    bottom: -18px;
+    font-size: 0.6rem;
+    color: var(--color-text-light);
+}
+
+.report-empty {
+    width: 100%;
+    text-align: center;
+    color: var(--color-text-light);
+    font-size: 0.9rem;
+    padding: 20px 0;
+}
+
+/* 日历提示中的删除提示 */
+.cal-delete-hint {
+    font-size: 0.9rem;
+}
+
+/* ============================================
+   排行榜
+   ============================================ */
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.rank-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-button);
+    background: rgba(255, 255, 255, 0.5);
+    transition: var(--transition);
+}
+.rank-item:hover {
+    background: rgba(255, 105, 180, 0.1);
+}
+.rank-item.rank-1 {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 105, 180, 0.1));
+    border: 2px solid rgba(255, 215, 0, 0.3);
+}
+.rank-item.is-me {
+    border: 2px solid var(--color-primary);
+    background: rgba(255, 105, 180, 0.08);
+}
+
+.rank-medal {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    flex-shrink: 0;
+}
+.rank-1 .rank-medal {
+    background-image: url('/assets/peach-kun/peach-crown.svg');
+}
+.rank-2 .rank-medal,
+.rank-3 .rank-medal {
+    background-image: url('/assets/peach-kun/peach-kun-base.svg');
+}
+
+.rank-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--color-text);
+    background: rgba(255, 105, 180, 0.1);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.rank-overdue .rank-medal {
+    background-image: url('/assets/peach-kun/peach-kun-sleepy.svg');
+    animation: shake 0.5s ease infinite alternate;
+}
+
+.rank-info {
+    flex: 1;
+    min-width: 0;
+}
+.rank-name {
+    font-weight: 700;
+    color: var(--color-text);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.rank-stats {
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 2px;
+    flex-wrap: wrap;
+}
+.rank-overdue-badge {
+    color: var(--color-error);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* 称号槽 — 用 margin-left:auto 把称号推到统计行最右侧 */
+.rank-title-slot {
+    margin-left: auto;
+}
+
+/* 称号徽章 */
+.rank-title-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(147, 112, 219, 0.18), rgba(255, 105, 180, 0.15));
+    color: #6B3FA0;
+    border: 1px solid rgba(147, 112, 219, 0.3);
+    white-space: nowrap;
+}
+
+/* 称号 > 4次 — 炫彩闪烁 */
+.rank-title-badge.rank-title-glow {
+    background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcf7f, #4d9de0, #c780fa, #ff6b6b);
+    background-size: 300% 300%;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 105, 180, 0.3);
+    animation: titleGlow 1.8s ease-in-out infinite, titleShine 2.5s linear infinite;
+}
+@keyframes titleGlow {
+    0%, 100% { transform: scale(1);    box-shadow: 0 0 12px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 105, 180, 0.3); }
+    50%      { transform: scale(1.06); box-shadow: 0 0 18px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 105, 180, 0.6); }
+}
+@keyframes titleShine {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+}
+
+.online-badge {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--color-online);
+    border-radius: 50%;
+    margin-left: 4px;
+}
+
+/* ============================================
+   实时动态
+   ============================================ */
+.feed-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.feed-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 105, 180, 0.08);
+    font-size: 0.9rem;
+    animation: fadeInUp 0.4s ease;
+}
+.feed-item:last-child {
+    border-bottom: none;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.feed-emoji {
+    font-size: 1.1rem;
+}
+.feed-user {
+    font-weight: 600;
+    color: var(--color-text);
+}
+.feed-action {
+    color: var(--color-text-light);
+}
+.feed-time {
+    color: rgba(74, 14, 78, 0.4);
+    font-size: 0.8rem;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+/* ============================================
+   空状态
+   ============================================ */
+.empty-state {
+    text-align: center;
+    padding: 32px 16px;
+}
+.empty-state .peach-illustration {
+    margin: 0 auto 12px;
+}
+.empty-state-text {
+    color: var(--color-text-light);
+    font-size: 0.95rem;
+}
+
+/* ============================================
+   Toast 通知
+   ============================================ */
+.toast-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 380px;
+}
+
+.toast {
+    border-radius: var(--radius-card);
+    padding: 16px 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    animation: slideInRight 0.4s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: default;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(400px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.toast.removing {
+    animation: slideOutRight 0.3s ease forwards;
+}
+@keyframes slideOutRight {
+    to { transform: translateX(400px); opacity: 0; }
+}
+
+.toast-success {
+    background: linear-gradient(135deg, #FF69B4, #FF1493);
+    color: white;
+    border: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.toast-reminder {
+    background: linear-gradient(135deg, #FF1493, #FF69B4);
+    color: white;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 32px rgba(255, 20, 147, 0.4);
+    animation: slideInRight 0.4s ease, shake 0.5s ease 0.4s, glow 2s ease infinite 0.9s;
+}
+
+.toast-reminder.is-me {
+    background: linear-gradient(135deg, #FF0000, #FF1493);
+    border-color: rgba(255, 215, 0, 0.6);
+}
+
+.toast-error {
+    background: linear-gradient(135deg, #FF4444, #FF1493);
+    color: white;
+    border: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.toast-info {
+    background: linear-gradient(135deg, #BDE0FE, #A2D2FF);
+    color: #4A0E4E;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+@keyframes glow {
+    0%, 100% { box-shadow: 0 8px 32px rgba(255, 20, 147, 0.4); }
+    50% { box-shadow: 0 8px 40px rgba(255, 105, 180, 0.6); }
+}
+
+.toast-content {
+    flex: 1;
+}
+.toast-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+.toast-message {
+    font-size: 0.85rem;
+    opacity: 0.95;
+    line-height: 1.4;
+}
+.toast-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+.toast-close:hover {
+    color: white;
+}
+
+/* 打卡成功弹跳屁桃君 */
+.toast-peach {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+}
+
+/* ============================================
+   庆祝弹窗
+   ============================================ */
+.celebration-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.celebration-box {
+    background: var(--color-card);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-card);
+    padding: 40px 48px;
+    text-align: center;
+    box-shadow: 0 16px 48px rgba(255, 105, 180, 0.3);
+    animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    max-width: 400px;
+}
+.celebration-peach {
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 16px;
+}
+.celebration-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+}
+.celebration-text {
+    color: var(--color-text);
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}
+
+/* ============================================
+   连接状态
+   ============================================ */
+.connection-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 20, 147, 0.9);
+    color: white;
+    text-align: center;
+    padding: 6px;
+    font-size: 0.85rem;
+    z-index: 1500;
+    display: none;
+}
+.connection-banner.show {
+    display: block;
+    animation: slideDown 0.3s ease;
+}
+@keyframes slideDown {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+
+/* ============================================
+   滚动条美化
+   ============================================ */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 105, 180, 0.3);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 105, 180, 0.5);
+}
+
+/* ============================================
+   弹幕刷屏系统 — 双规则双颜色
+   ============================================ */
+.danmaku-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    overflow: hidden;
+}
+
+.danmaku-item {
+    position: absolute;
+    left: 100%;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 24px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 999px;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    animation: danmakuScroll var(--duration, 12s) linear forwards;
+    will-change: transform;
+}
+
+@keyframes danmakuScroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(calc(-100vw - 100%)); }
+}
+
+/* ---- 规则一：通报批评弹幕（红色系） ---- */
+.danmaku-item.rule-overdue {
+    background: rgba(80, 12, 30, 0.6);
+    border: 1.5px solid rgba(255, 80, 80, 0.3);
+    box-shadow: 0 2px 12px rgba(120, 10, 30, 0.25);
+}
+
+/* ---- 规则二：打卡成就弹幕（蓝紫系） ---- */
+.danmaku-item.rule-achievement {
+    background: rgba(20, 25, 75, 0.6);
+    border: 1.5px solid rgba(100, 130, 255, 0.35);
+    box-shadow: 0 2px 12px rgba(30, 40, 100, 0.25);
+}
+
+/* ---- 自己的弹幕 → 更醒目 ---- */
+.danmaku-item.danmaku-me {
+    border-width: 2px;
+    animation: danmakuScroll var(--duration, 12s) linear forwards,
+               danmakuPulse 1.5s ease infinite;
+}
+
+.danmaku-item.danmaku-me.rule-overdue {
+    background: rgba(255, 20, 147, 0.55);
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 16px rgba(255, 20, 147, 0.35);
+}
+
+.danmaku-item.danmaku-me.rule-achievement {
+    background: rgba(80, 30, 200, 0.55);
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 16px rgba(120, 60, 255, 0.4);
+}
+
+@keyframes danmakuPulse {
+    0%, 100% { filter: brightness(1); }
+    50%      { filter: brightness(1.25); }
+}
+
+/* ---- 表情符号 ---- */
+.danmaku-emoji {
+    font-size: 1.4em;
+    line-height: 1;
+}
+
+/* ---- 规则一高亮：用户名（金色） ---- */
+.rule-overdue .danmaku-username {
+    color: #FFD700;
+    font-weight: 800;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6),
+                 0 1px 3px rgba(0, 0, 0, 0.5);
+    padding: 0 2px;
+}
+
+/* ---- 规则一高亮：天数（亮红色） ---- */
+.rule-overdue .danmaku-days {
+    color: #FF4444;
+    font-weight: 800;
+    font-size: 1.15em;
+    text-shadow: 0 0 8px rgba(255, 68, 68, 0.6),
+                 0 1px 3px rgba(0, 0, 0, 0.5);
+    padding: 0 2px;
+}
+
+/* ---- 规则二高亮：用户名（青色） ---- */
+.rule-achievement .danmaku-username {
+    color: #00E5FF;
+    font-weight: 800;
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.6),
+                 0 1px 3px rgba(0, 0, 0, 0.5);
+    padding: 0 2px;
+}
+
+/* ---- 规则二高亮：称号（金色） ---- */
+.rule-achievement .danmaku-title {
+    color: #FFD700;
+    font-weight: 800;
+    font-size: 1.1em;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6),
+                 0 1px 3px rgba(0, 0, 0, 0.5);
+    padding: 0 2px;
+}
+
+/* ---- 规则二高亮：次数（亮绿色） ---- */
+.rule-achievement .danmaku-count {
+    color: #00FF88;
+    font-weight: 800;
+    font-size: 1.15em;
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.6),
+                 0 1px 3px rgba(0, 0, 0, 0.5);
+    padding: 0 2px;
+}
+
+/* ---- 规则二话语 ---- */
+.rule-achievement .danmaku-phrase {
+    color: #E0E0FF;
+    font-weight: 500;
+}
+
+/* ---- 自己的弹幕加强高亮 ---- */
+.danmaku-item.danmaku-me .danmaku-username {
+    text-shadow: 0 0 10px currentColor,
+                 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.danmaku-item.danmaku-me.rule-overdue .danmaku-days {
+    color: #FF3333;
+    text-shadow: 0 0 10px rgba(255, 51, 51, 0.8),
+                 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.danmaku-item.danmaku-me.rule-achievement .danmaku-title {
+    color: #FFEE00;
+    text-shadow: 0 0 10px rgba(255, 238, 0, 0.8),
+                 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.danmaku-item.danmaku-me.rule-achievement .danmaku-count {
+    color: #00FFAA;
+    text-shadow: 0 0 10px rgba(0, 255, 170, 0.8),
+                 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- 清屏按钮 ---- */
+.danmaku-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.danmaku-close-btn {
+    background: rgba(255, 20, 147, 0.8);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 4px 12px rgba(255, 20, 147, 0.4);
+    transition: all 0.3s ease;
+}
+.danmaku-close-btn:hover {
+    background: rgba(255, 20, 147, 1);
+    transform: scale(1.05);
+}
+
+/* ============================================
+   移动端适配
+   ============================================ */
+@media (max-width: 767px) {
+    .navbar {
+        padding: 10px 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    .navbar-info {
+        gap: 8px;
+        font-size: 0.85rem;
+    }
+    .navbar-online, .navbar-user, .navbar-streak {
+        font-size: 0.82rem;
+        padding: 4px 10px;
+    }
+    .btn-logout {
+        padding: 4px 12px;
+        font-size: 0.82rem;
+    }
+
+    .main-grid {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .card {
+        padding: 18px;
+    }
+
+    .btn-checkin {
+        font-size: 1.25rem;
+        padding: 16px 32px;
+    }
+
+    .streak-display {
+        font-size: 2.5rem;
+    }
+
+    .toast-container {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        top: 70px;
+    }
+
+    .bg-peach-1 { width: 120px; }
+    .bg-peach-2 { width: 140px; }
+    .bg-peach-3 { width: 100px; }
+
+    .login-peach {
+        width: 120px;
+        height: 120px;
+    }
+    .login-title {
+        font-size: 1.6rem;
+    }
+
+    .danmaku-item {
+        font-size: 0.9rem;
+        padding: 6px 18px;
+        gap: 6px;
+    }
+    .danmaku-emoji {
+        font-size: 1.2em;
+    }
+    .danmaku-close-btn {
+        padding: 6px 14px;
+        font-size: 0.82rem;
+    }
+
+    .calendar-cell {
+        border-radius: 8px;
+    }
+    .cal-poop {
+        font-size: 0.8rem;
+    }
+    .cal-plus {
+        font-size: 0.9rem;
+    }
+    .cal-day-num {
+        font-size: 0.65rem;
+    }
+    .calendar-hint {
+        font-size: 0.7rem;
+    }
+
+    .report-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    .report-stat-value {
+        font-size: 1.3rem;
+    }
+    .monthly-report-box {
+        max-width: 92vw;
+        padding: 24px 20px;
+    }
+}
+
+/* 触摸优化 */
+.btn, .btn-primary, .btn-checkin, .btn-secondary, .auth-tab, .rank-item {
+    min-height: 44px;
+}
+
+/* 禁用高亮 */
+.no-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 版权声明 */
+.copyright {
+    text-align: center;
+    padding: 16px;
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+    opacity: 0.6;
+    position: relative;
+    z-index: 1;
+}

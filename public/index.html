@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💩 答辩记录仪 - 记录每一次通畅时刻</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💩</text></svg>">
+</head>
+<body>
+    <!-- 背景浮动屁桃君 -->
+    <img class="bg-peach bg-peach-1" src="/assets/peach-kun/peach-kun-base.svg" alt="">
+    <img class="bg-peach bg-peach-2" src="/assets/peach-kun/peach-wave.svg" alt="">
+    <img class="bg-peach bg-peach-3" src="/assets/peach-kun/peach-kun-wink.svg" alt="">
+
+    <div class="login-page">
+        <div class="login-container">
+            <div class="peach-illustration peach-xl login-peach peach-login"></div>
+            <h1 class="login-title">💩 答辩记录仪</h1>
+            <p class="login-subtitle">记录每一次通畅时刻</p>
+
+            <div class="card login-card">
+                <form id="auth-form" onsubmit="return false;">
+                    <div class="form-group">
+                        <label class="form-label" for="username">用户名</label>
+                        <input type="text" id="username" class="form-input" placeholder="请输入中文用户名" autocomplete="username" maxlength="20">
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="auth-submit" style="width:100%;" onclick="Auth.submit()">
+                        💩 进入 💩
+                    </button>
+
+                    <div class="form-error" id="form-error"></div>
+                </form>
+            </div>
+
+            <p class="login-footer">本应用使用屁桃君形象仅供学习娱乐 💩</p>
+        </div>
+    </div>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        // 已登录用户直接跳转
+        if (Auth.isLoggedIn()) {
+            window.location.href = '/dashboard.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+services:
+  # 答辩记录仪 - Render 部署配置
+  # 部署步骤：
+  #   1. 把本项目推到 GitHub
+  #   2. 打开 https://dashboard.render.com/blueprints 点击 "New Blueprint Instance"
+  #   3. 连接你的 GitHub 仓库，Render 会自动按本文件创建服务
+  #   4. 创建时在环境变量里填好 JWT_SECRET（或保留 generateValue 自动生成）
+  - type: web
+    name: daibiandengjiqi
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_PATH
+        value: /data/app.db
+      - key: JWT_SECRET
+        generateValue: true
+    # 持久磁盘：保证重启/重新部署后数据不丢失（约 $0.20/GB/月，1GB 几乎免费）
+    disk:
+      name: app-data
+      mountPath: /data
+      sizeGB: 1
